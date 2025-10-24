@@ -1,0 +1,76 @@
+<%- include('partials/header', { 
+    title: title,
+    currentPage: currentPage,
+    query: query
+}) %>
+
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">Search: "<%= query %>"</h1>
+            <p class="page-subtitle">Search results for "<%= query %>"</p>
+        </div>
+
+        <div id="videos-container" class="videos-grid">
+            <!-- Videos will be loaded here by JavaScript -->
+        </div>
+
+        <div id="loading-section" class="loading-section">
+            <div class="loading-spinner"></div>
+            <p>Searching for "<%= query %>"...</p>
+        </div>
+
+        <div id="error-section" class="error-section" style="display: none;">
+            <div class="error-message">
+                <h3>❌ Search Failed</h3>
+                <p id="error-text"></p>
+                <button onclick="performSearch('<%= query %>')" class="retry-button">
+                    Try Again
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            performSearch('<%= query %>');
+        });
+
+        async function performSearch(query) {
+            const loadingSection = document.getElementById('loading-section');
+            const videosSection = document.getElementById('videos-container');
+            const errorSection = document.getElementById('error-section');
+            const errorText = document.getElementById('error-text');
+
+            // Show loading, hide others
+            loadingSection.style.display = 'block';
+            videosSection.style.display = 'none';
+            errorSection.style.display = 'none';
+
+            try {
+                const data = await APIService.search(query);
+                
+                if (data.success) {
+                    VideoRenderer.renderVideos(data.data, videosSection);
+                    loadingSection.style.display = 'none';
+                    videosSection.style.display = 'grid';
+                    errorSection.style.display = 'none';
+                    
+                    // Update title with result count
+                    const titleElement = document.querySelector('.page-title');
+                    if (titleElement) {
+                        const resultText = data.count > 0 ? ` (${data.count} results)` : ' (No results)';
+                        titleElement.textContent = `Search: "${query}"${resultText}`;
+                    }
+                } else {
+                    throw new Error(data.error || 'No results found');
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                errorText.textContent = error.message;
+                loadingSection.style.display = 'none';
+                errorSection.style.display = 'block';
+            }
+        }
+    </script>
+
+<%- include('partials/footer') %>

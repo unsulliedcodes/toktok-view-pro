@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title><%= title %></title>
+    <link rel="stylesheet" href="/css/style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <nav class="navbar">
+      <div class="nav-container">
+        <a href="/" class="nav-logo">
+          <span class="logo-text">TokView Pro</span>
+        </a>
+
+        <form action="/search" method="GET" class="nav-search">
+          <input
+            type="text"
+            name="q"
+            placeholder="Search @username, #hashtag, or keywords..."
+            value="<%= typeof query !== 'undefined' ? query : '' %>"
+            class="search-input"
+          />
+          <button type="submit" class="search-button">
+            <span>Search</span>
+          </button>
+        </form>
+
+        <div class="nav-links">
+          <a
+            href="/"
+            class="nav-link <%= currentPage === 'home' ? 'active' : '' %>"
+          >
+            Home
+          </a>
+          <a
+            href="/trending"
+            class="nav-link <%= currentPage === 'trending' ? 'active' : '' %>"
+          >
+            Trending
+          </a>
+        </div>
+      </div>
+    </nav>
+
+    <main class="main-content"></main>
+  </body>
+</html>

@@ -1,0 +1,175 @@
+<%- include('partials/header', { title: title, currentPage: currentPage }) %>
+
+<div class="container">
+  <div class="page-header">
+    <h1 class="page-title">🔥 Trending Videos</h1>
+    <p class="page-subtitle">Discover what's popular on TikTok right now</p>
+  </div>
+
+  <div id="loading-section" class="loading-section">
+    <div class="loading-spinner"></div>
+    <p>Loading trending videos...</p>
+  </div>
+
+  <div id="videos-section" class="videos-section" style="display: none">
+    <div id="videos-container" class="videos-grid">
+      <!-- Videos will be loaded here by JavaScript -->
+    </div>
+  </div>
+
+  <div id="error-section" class="error-section" style="display: none">
+    <div class="error-message">
+      <h3>❌ Failed to Load Videos</h3>
+      <p id="error-text"></p>
+      <button onclick="loadTrendingVideos()" class="retry-button">
+        Try Again
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Load trending videos when page loads
+  document.addEventListener("DOMContentLoaded", function () {
+    loadTrendingVideos();
+  });
+
+  async function loadTrendingVideos() {
+    const loadingSection = document.getElementById("loading-section");
+    const videosSection = document.getElementById("videos-section");
+    const errorSection = document.getElementById("error-section");
+    const videosContainer = document.getElementById("videos-container");
+    const errorText = document.getElementById("error-text");
+
+    // Show loading, hide others
+    loadingSection.style.display = "block";
+    videosSection.style.display = "none";
+    errorSection.style.display = "none";
+
+    try {
+      const response = await fetch("/api/trending");
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to fetch trending videos");
+      }
+
+      if (data.success && data.data.length > 0) {
+        displayVideos(data.data);
+        loadingSection.style.display = "none";
+        videosSection.style.display = "block";
+      } else {
+        throw new Error("No trending videos found");
+      }
+    } catch (error) {
+      console.error("Error loading trending videos:", error);
+      errorText.textContent = error.message;
+      loadingSection.style.display = "none";
+      errorSection.style.display = "block";
+    }
+  }
+
+  function displayVideos(videos) {
+    const container = document.getElementById("videos-container");
+
+    if (videos.length === 0) {
+      container.innerHTML = `
+                    <div class="no-videos">
+                        <p>No videos found. Try again later.</p>
+                    </div>
+                `;
+      return;
+    }
+
+    container.innerHTML = videos
+      .map(
+        (video) => `
+                <div class="video-card">
+                    <div class="video-player">
+                        <iframe 
+                            src="https://www.tiktok.com/embed/v2/${video.id}"
+                            frameborder="0" 
+                            allowfullscreen
+                            loading="lazy"
+                            title="TikTok video by @${video.creator.username}"
+                        ></iframe>
+                    </div>
+                    <div class="video-info">
+                        <div class="creator-info">
+                            <img 
+                                src="${video.creator.avatar}" 
+                                alt="${video.creator.username}'s avatar"
+                                class="creator-avatar"
+                                onerror="this.src='/images/default-avatar.png'"
+                            >
+                            <div class="creator-details">
+                                <h4 class="creator-username">@${
+                                  video.creator.username
+                                }</h4>
+                            </div>
+                        </div>
+                        
+                        <p class="video-description">${video.description}</p>
+                        
+                        ${
+                          video.soundtrack
+                            ? `
+                            <p class="video-soundtrack">
+                                <strong>Sound:</strong> ${video.soundtrack}
+                            </p>
+                        `
+                            : ""
+                        }
+                        
+                        <div class="video-stats">
+                            <span class="stat">❤️ ${
+                              video.likes?.toLocaleString() || 0
+                            }</span>
+                            <span class="stat">💬 ${
+                              video.comments?.toLocaleString() || 0
+                            }</span>
+                            <span class="stat">🔗 ${
+                              video.shares?.toLocaleString() || 0
+                            }</span>
+                        </div>
+                        
+                        ${
+                          video.hashtags.length > 0
+                            ? `
+                            <div class="video-hashtags">
+                                ${video.hashtags
+                                  .slice(0, 3)
+                                  .map(
+                                    (tag) => `
+                                    <a href="/hashtag/${tag}" class="hashtag">#${tag}</a>
+                                `
+                                  )
+                                  .join("")}
+                                ${
+                                  video.hashtags.length > 3
+                                    ? `
+                                    <span class="more-hashtags">+${
+                                      video.hashtags.length - 3
+                                    } more</span>
+                                `
+                                    : ""
+                                }
+                            </div>
+                        `
+                            : ""
+                        }
+                        
+                        <a href="${
+                          video.videoUrl
+                        }" target="_blank" class="video-link">
+                            Open on TikTok ↗
+                        </a>
+                    </div>
+                </div>
+            `
+      )
+      .join("");
+  }
+</script>
+
+<%- include('partials/footer') %>

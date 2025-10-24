@@ -1,0 +1,87 @@
+<%- include('partials/header', { title: title, currentPage: currentPage }) %>
+
+<section class="hero">
+  <div class="hero-content">
+    <h1 class="hero-title">TokView</h1>
+    <p class="hero-subtitle">Streamline Your TikTok Viewing</p>
+    <p class="hero-description">
+      Explore TikTok content anonymously. No login required. View profiles,
+      trending videos, and hashtags with a clean, professional interface.
+    </p>
+
+    <form action="/search" method="GET" class="hero-search">
+      <input
+        type="text"
+        name="q"
+        placeholder="Try @tiktok, #dance, or search keywords..."
+        class="hero-search-input"
+      />
+      <button type="submit" class="hero-search-button">Search</button>
+    </form>
+
+    <div class="quick-actions">
+      <a href="/trending" class="quick-action-btn primary"> 🔥 Trending Now </a>
+      <a href="/hashtag/dance" class="quick-action-btn"> #dance </a>
+      <a href="/profile/tiktok" class="quick-action-btn"> @tiktok </a>
+      <a href="/hashtag/funny" class="quick-action-btn"> #funny </a>
+    </div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="container">
+    <h2 class="features-title">Why Use TokView Pro?</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3 class="feature-title">No Login Required</h3>
+        <p class="feature-description">
+          Access TikTok content instantly without creating an account or logging
+          in.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🔥</div>
+        <h3 class="feature-title">Trending Videos</h3>
+        <p class="feature-description">
+          Discover what's popular right now with our curated trending section.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">#️⃣</div>
+        <h3 class="feature-title">Search by Hashtag</h3>
+        <p class="feature-description">
+          Explore videos by trending tags and discover new content easily.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">👤</div>
+        <h3 class="feature-title">Profile Viewer</h3>
+        <p class="feature-description">
+          View any public TikTok profile and their videos without following.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🚀</div>
+        <h3 class="feature-title">Fast & Clean</h3>
+        <p class="feature-description">
+          Lightning-fast interface without the clutter of the official app.
+        </p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <h3 class="feature-title">Mobile Friendly</h3>
+        <p class="feature-description">
+          Works perfectly on all devices - desktop, tablet, and mobile.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<%- include('partials/footer') %>
