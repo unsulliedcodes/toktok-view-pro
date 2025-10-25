@@ -13,7 +13,7 @@ const router = express.Router();
 const APIFY_TOKEN = process.env.APIFY_API_KEY;
 
 if (!APIFY_TOKEN || APIFY_TOKEN.includes('your_actual_key_here')) {
-  console.error('❌ APIFY_API_KEY is not set in environment variables');
+  console.error('APIFY_API_KEY is not set in environment variables');
   console.log('💡 Please add your Apify API key to the .env file');
 }
 
@@ -36,13 +36,13 @@ async function runScraper(input, cacheKey = null) {
   if (cacheKey && cache.has(cacheKey)) {
     const cached = cache.get(cacheKey);
     if (Date.now() - cached.timestamp < CACHE_DURATION) {
-      console.log(`✅ Using cached data for: ${cacheKey}`);
+      console.log(`Using cached data for: ${cacheKey}`);
       return cached.data;
     }
   }
 
   try {
-    console.log(`🔄 Fetching fresh data for: ${cacheKey || 'unknown'}`);
+    console.log(`Fetching fresh data for: ${cacheKey || 'unknown'}`);
     
     const run = await client.actor(ACTOR_NAME).call(input);
     const { items } = await client.dataset(run.defaultDatasetId).listItems();
@@ -57,7 +57,7 @@ async function runScraper(input, cacheKey = null) {
     
     return items;
   } catch (error) {
-    console.error('❌ Apify scraper error:', error.message);
+    console.error('Apify scraper error:', error.message);
     
     if (error.message.includes('invalid token') || error.message.includes('unauthorized')) {
       throw new Error('Invalid Apify API key. Please check your .env file');

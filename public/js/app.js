@@ -27,7 +27,7 @@ const Utils = {
       container.innerHTML = `
                 <div class="error-section">
                     <div class="error-message">
-                        <h3>❌ Something went wrong</h3>
+                        <h3>Something went wrong</h3>
                         <p>${message}</p>
                         <button onclick="window.location.reload()" class="retry-button">
                             Try Again
@@ -397,7 +397,7 @@ const PageHandlers = {
 
 // Initialize app when DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
-  console.log("🚀 TokView Pro Frontend Initialized");
+  console.log("TokView Pro Frontend Initialized");
 
   // Add search form enhancement
   const searchForms = document.querySelectorAll('form[action="/search"]');
