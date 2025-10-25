@@ -1,5 +1,33 @@
 // public/js/app.js - Frontend JavaScript functionality
+// Update the APIService section in public/js/app.js
+const APIService = {
+    baseURL: '', // Same origin
 
+    async request(endpoint, options = {}) {
+        try {
+            const url = `${this.baseURL}${endpoint}`;
+            const response = await fetch(url, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                },
+                ...options
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error('API request failed:', error);
+            throw error;
+        }
+    },
+
+    // ... rest of your methods remain the same
+};
 // Global app state
 const AppState = {
   currentPage: "home",
