@@ -16,7 +16,7 @@ const __dirname = path.dirname(__filename);
 import apiRoutes from './routes/api.js';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 
 // ======================
 // MIDDLEWARE SETUP
@@ -35,6 +35,9 @@ app.set('views', path.join(__dirname, 'views'));
 // ======================
 // ROUTES
 // ======================
+
+// Mount API routes
+app.use('/api', apiRoutes);
 
 // Home page route
 app.get('/', (req, res) => {
