@@ -7,6 +7,21 @@
         </div>
     </footer>
 
-    <script src="/js/app.js"></script>
+    <!-- Load app.js with cache busting and error handling -->
+    <script>
+    (function() {
+        var script = document.createElement('script');
+        script.src = '/js/app.js?v=' + Date.now();
+        script.onload = function() {
+            console.log('app.js loaded successfully');
+            // Trigger a custom event that pages can listen for
+            window.dispatchEvent(new CustomEvent('appjs-loaded'));
+        };
+        script.onerror = function() {
+            console.error('Failed to load app.js');
+        };
+        document.body.appendChild(script);
+    })();
+    </script>
 </body>
 </html>

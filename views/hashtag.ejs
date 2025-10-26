@@ -1,75 +1,58 @@
-<%- include('partials/header', { 
-    title: title,
-    currentPage: currentPage 
-}) %>
+<%- include('partials/header', { title: title, currentPage: currentPage }) %>
 
-    <div class="container">
-        <div class="page-header">
-            <h1 class="page-title">#<%= hashtag %></h1>
-            <p class="page-subtitle">Videos with hashtag #<%= hashtag %></p>
-        </div>
+<div class="container">
+  <div class="page-header">
+    <h1 class="page-title">#<%= hashtag %></h1>
+    <p class="page-subtitle">Videos with hashtag #<%= hashtag %></p>
+  </div>
 
-        <div id="videos-container" class="videos-grid">
-            <!-- Videos will be loaded here by JavaScript -->
-        </div>
+  <div id="videos-container" class="videos-grid">
+    <!-- Videos will be loaded here by JavaScript -->
+  </div>
 
-        <div id="loading-section" class="loading-section">
-            <div class="loading-spinner"></div>
-            <p>Loading videos for #<%= hashtag %>...</p>
-        </div>
+  <div id="loading-section" class="loading-section">
+    <div class="loading-spinner"></div>
+    <p>Loading videos for #<%= hashtag %>...</p>
+  </div>
 
-        <div id="error-section" class="error-section" style="display: none;">
-            <div class="error-message">
-                <h3>❌ Failed to Load Videos</h3>
-                <p id="error-text"></p>
-                <button onclick="loadHashtagVideos('<%= hashtag %>')" class="retry-button">
-                    Try Again
-                </button>
-            </div>
-        </div>
+  <div id="error-section" class="error-section" style="display: none">
+    <div class="error-message">
+      <h3>❌ Failed to Load Videos</h3>
+      <p id="error-text"></p>
+      <button
+        onclick="loadHashtagVideos('<%= hashtag %>')"
+        class="retry-button"
+      >
+        Try Again
+      </button>
     </div>
+  </div>
+</div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Show loading initially
-            document.getElementById('loading-section').style.display = 'block';
-            document.getElementById('videos-container').style.display = 'none';
-            document.getElementById('error-section').style.display = 'none';
-            
-            loadHashtagVideos('<%= hashtag %>');
-        });
-
-        async function loadHashtagVideos(tag) {
-            const loadingSection = document.getElementById('loading-section');
-            const videosSection = document.getElementById('videos-container');
-            const errorSection = document.getElementById('error-section');
-            const errorText = document.getElementById('error-text');
-
-            try {
-                const data = await APIService.getHashtag(tag);
-                
-                if (data.success && data.data.length > 0) {
-                    VideoRenderer.renderVideos(data.data, videosSection);
-                    loadingSection.style.display = 'none';
-                    videosSection.style.display = 'grid';
-                    errorSection.style.display = 'none';
-                    
-                    // Update title with count
-                    const titleElement = document.querySelector('.page-title');
-                    if (titleElement) {
-                        titleElement.textContent = `#${tag} (${data.count} videos)`;
-                    }
-                } else {
-                    throw new Error(data.error || 'No videos found for this hashtag');
-                }
-            } catch (error) {
-                console.error('Error loading hashtag videos:', error);
-                errorText.textContent = error.message;
-                loadingSection.style.display = 'none';
-                videosSection.style.display = 'none';
-                errorSection.style.display = 'block';
-            }
+<script>
+  function loadTrending() {
+    if (typeof window.loadTrendingVideos !== "undefined") {
+      window.loadTrendingVideos();
+    } else {
+      // Wait for app to be ready
+      const checkInterval = setInterval(() => {
+        if (typeof window.loadTrendingVideos !== "undefined") {
+          clearInterval(checkInterval);
+          window.loadTrendingVideos();
         }
-    </script>
+      }, 100);
+
+      // Timeout after 5 seconds
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        if (typeof window.loadTrendingVideos === "undefined") {
+          console.error("Failed to load trending videos function");
+        }
+      }, 5000);
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", loadTrending);
+</script>
 
 <%- include('partials/footer') %>

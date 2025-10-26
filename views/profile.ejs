@@ -1,223 +1,157 @@
-<%- include('partials/header', { 
-    title: title,
-    currentPage: currentPage 
-}) %>
+<%- include('partials/header', { title: title, currentPage: currentPage }) %>
 
-    <div class="container">
-        <div class="page-header">
-            <h1 class="page-title">@<%= username %></h1>
-            <p class="page-subtitle">TikTok profile and videos</p>
-        </div>
+<div class="container">
+  <div class="page-header">
+    <h1 class="page-title">@<%= username %></h1>
+    <p class="page-subtitle">TikTok profile and videos</p>
+  </div>
 
-        <!-- Profile Information -->
-        <div id="profile-container" class="profile-container">
-            <!-- Profile info will be loaded here -->
-        </div>
+  <!-- Profile Information -->
+  <div id="profile-container" class="profile-container">
+    <!-- Profile info will be loaded here -->
+  </div>
 
-        <!-- Videos Grid -->
-        <div id="videos-container" class="videos-grid">
-            <!-- Videos will be loaded here by JavaScript -->
-        </div>
+  <!-- Videos Grid -->
+  <div id="videos-container" class="videos-grid">
+    <!-- Videos will be loaded here by JavaScript -->
+  </div>
 
-        <div id="loading-section" class="loading-section">
-            <div class="loading-spinner"></div>
-            <p>Loading profile and videos for @<%= username %>...</p>
-        </div>
+  <div id="loading-section" class="loading-section">
+    <div class="loading-spinner"></div>
+    <p>Loading profile and videos for @<%= username %>...</p>
+  </div>
 
-        <div id="error-section" class="error-section" style="display: none;">
-            <div class="error-message">
-                <h3>❌ Failed to Load Profile</h3>
-                <p id="error-text"></p>
-                <button onclick="loadProfileData('<%= username %>')" class="retry-button">
-                    Try Again
-                </button>
-            </div>
-        </div>
+  <div id="error-section" class="error-section" style="display: none">
+    <div class="error-message">
+      <h3>❌ Failed to Load Profile</h3>
+      <p id="error-text"></p>
+      <button onclick="loadProfileData('<%= username %>')" class="retry-button">
+        Try Again
+      </button>
     </div>
+  </div>
+</div>
 
-    <style>
-        .profile-container {
-            background: var(--color-gray-900);
-            border-radius: 16px;
-            padding: 2rem;
-            margin-bottom: 2rem;
-            border: 1px solid var(--color-gray-700);
+<style>
+  .profile-container {
+    background: var(--color-gray-900);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--color-gray-700);
+  }
+
+  .profile-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 2rem;
+  }
+
+  .profile-avatar {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .profile-avatar img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 3px solid var(--color-cyan-400);
+  }
+
+  .verified-badge {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background: var(--color-cyan-400);
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  .profile-info {
+    flex-grow: 1;
+  }
+
+  .profile-username {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .profile-bio {
+    color: var(--color-gray-300);
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+  }
+
+  .profile-stats {
+    display: flex;
+    gap: 2rem;
+  }
+
+  .profile-stat {
+    text-align: center;
+  }
+
+  .stat-number {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-light-gray);
+  }
+
+  .stat-label {
+    font-size: 0.9rem;
+    color: var(--color-gray-400);
+  }
+
+  @media (max-width: 768px) {
+    .profile-header {
+      flex-direction: column;
+      text-align: center;
+      gap: 1rem;
+    }
+
+    .profile-stats {
+      justify-content: center;
+    }
+  }
+</style>
+
+<script>
+  function loadTrending() {
+    if (typeof window.loadTrendingVideos !== "undefined") {
+      window.loadTrendingVideos();
+    } else {
+      // Wait for app to be ready
+      const checkInterval = setInterval(() => {
+        if (typeof window.loadTrendingVideos !== "undefined") {
+          clearInterval(checkInterval);
+          window.loadTrendingVideos();
         }
+      }, 100);
 
-        .profile-header {
-            display: flex;
-            align-items: flex-start;
-            gap: 2rem;
+      // Timeout after 5 seconds
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        if (typeof window.loadTrendingVideos === "undefined") {
+          console.error("Failed to load trending videos function");
         }
+      }, 5000);
+    }
+  }
 
-        .profile-avatar {
-            position: relative;
-            flex-shrink: 0;
-        }
-
-        .profile-avatar img {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            border: 3px solid var(--color-cyan-400);
-        }
-
-        .verified-badge {
-            position: absolute;
-            bottom: 5px;
-            right: 5px;
-            background: var(--color-cyan-400);
-            color: white;
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-        }
-
-        .profile-info {
-            flex-grow: 1;
-        }
-
-        .profile-username {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .profile-bio {
-            color: var(--color-gray-300);
-            margin-bottom: 1.5rem;
-            line-height: 1.5;
-        }
-
-        .profile-stats {
-            display: flex;
-            gap: 2rem;
-        }
-
-        .profile-stat {
-            text-align: center;
-        }
-
-        .stat-number {
-            display: block;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--color-light-gray);
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            color: var(--color-gray-400);
-        }
-
-        @media (max-width: 768px) {
-            .profile-header {
-                flex-direction: column;
-                text-align: center;
-                gap: 1rem;
-            }
-
-            .profile-stats {
-                justify-content: center;
-            }
-        }
-    </style>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            loadProfileData('<%= username %>');
-        });
-
-        async function loadProfileData(username) {
-            const loadingSection = document.getElementById('loading-section');
-            const profileContainer = document.getElementById('profile-container');
-            const videosContainer = document.getElementById('videos-container');
-            const errorSection = document.getElementById('error-section');
-            const errorText = document.getElementById('error-text');
-
-            // Show loading, hide others
-            loadingSection.style.display = 'block';
-            profileContainer.style.display = 'none';
-            videosContainer.style.display = 'none';
-            errorSection.style.display = 'none';
-
-            try {
-                const data = await APIService.getProfile(username);
-                
-                if (data.success) {
-                    // Render profile information
-                    if (data.profile) {
-                        profileContainer.innerHTML = `
-                            <div class="profile-header">
-                                <div class="profile-avatar">
-                                    <img 
-                                        src="${data.profile.avatar}" 
-                                        alt="${data.profile.username}'s avatar"
-                                        onerror="this.src='/images/default-avatar.png'"
-                                    >
-                                    ${data.profile.verified ? '<span class="verified-badge">✓</span>' : ''}
-                                </div>
-                                <div class="profile-info">
-                                    <h2 class="profile-username">@${data.profile.username}</h2>
-                                    <p class="profile-bio">${data.profile.bio || 'No bio available'}</p>
-                                    <div class="profile-stats">
-                                        <div class="profile-stat">
-                                            <span class="stat-number">${Utils.formatNumber(data.profile.followers)}</span>
-                                            <span class="stat-label">Followers</span>
-                                        </div>
-                                        <div class="profile-stat">
-                                            <span class="stat-number">${Utils.formatNumber(data.profile.following)}</span>
-                                            <span class="stat-label">Following</span>
-                                        </div>
-                                        <div class="profile-stat">
-                                            <span class="stat-number">${Utils.formatNumber(data.profile.likes)}</span>
-                                            <span class="stat-label">Likes</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                        profileContainer.style.display = 'block';
-                    }
-
-                    // Render videos
-                    if (data.videos && data.videos.length > 0) {
-                        VideoRenderer.renderVideos(data.videos, videosContainer);
-                        videosContainer.style.display = 'grid';
-                        
-                        // Update title with video count
-                        const titleElement = document.querySelector('.page-title');
-                        if (titleElement) {
-                            titleElement.textContent = `@${username} (${data.videoCount} videos)`;
-                        }
-                    } else {
-                        videosContainer.innerHTML = `
-                            <div class="no-videos">
-                                <p>No public videos found for this profile.</p>
-                            </div>
-                        `;
-                        videosContainer.style.display = 'block';
-                    }
-
-                    loadingSection.style.display = 'none';
-                } else {
-                    throw new Error(data.error || 'Profile not found');
-                }
-            } catch (error) {
-                console.error('Error loading profile:', error);
-                errorText.textContent = error.message;
-                loadingSection.style.display = 'none';
-                errorSection.style.display = 'block';
-            }
-        }
-    </script>
+  document.addEventListener("DOMContentLoaded", loadTrending);
+</script>
 
 <%- include('partials/footer') %>

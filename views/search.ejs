@@ -31,46 +31,113 @@
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            performSearch('<%= query %>');
-        });
+        console.log("=== SEARCH PAGE DEBUG ===");
+console.log("APIService available:", typeof window.APIService !== 'undefined');
+console.log("Window objects:", Object.keys(window).filter(key => key.includes('API') || key.includes('Service') || key.includes('load')));
 
-        async function performSearch(query) {
-            const loadingSection = document.getElementById('loading-section');
-            const videosSection = document.getElementById('videos-container');
-            const errorSection = document.getElementById('error-section');
-            const errorText = document.getElementById('error-text');
+// Show loading immediately
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM Content Loaded - APIService:", typeof window.APIService);
+    
+    const loadingSection = document.getElementById('loading-section');
+    const videosSection = document.getElementById('videos-container');
+    const errorSection = document.getElementById('error-section');
+    
+    loadingSection.style.display = 'block';
+    videosSection.style.display = 'none';
+    errorSection.style.display = 'none';
+    
+    performSearch('<%= query %>');
+});
+       // Safe search function that waits for APIService to be available
+function performSearch(query) {
+    console.log("Attempting search for:", query);
+    
+    const loadingSection = document.getElementById('loading-section');
+    const videosSection = document.getElementById('videos-container');
+    const errorSection = document.getElementById('error-section');
+    const errorText = document.getElementById('error-text');
 
-            // Show loading, hide others
-            loadingSection.style.display = 'block';
-            videosSection.style.display = 'none';
-            errorSection.style.display = 'none';
-
-            try {
-                const data = await APIService.search(query);
-                
-                if (data.success) {
-                    VideoRenderer.renderVideos(data.data, videosSection);
-                    loadingSection.style.display = 'none';
-                    videosSection.style.display = 'grid';
-                    errorSection.style.display = 'none';
-                    
-                    // Update title with result count
-                    const titleElement = document.querySelector('.page-title');
-                    if (titleElement) {
-                        const resultText = data.count > 0 ? ` (${data.count} results)` : ' (No results)';
-                        titleElement.textContent = `Search: "${query}"${resultText}`;
-                    }
-                } else {
-                    throw new Error(data.error || 'No results found');
-                }
-            } catch (error) {
-                console.error('Search error:', error);
-                errorText.textContent = error.message;
-                loadingSection.style.display = 'none';
-                errorSection.style.display = 'block';
+    // Check if APIService is available
+    if (typeof window.APIService === 'undefined') {
+        console.error("❌ APIService not available yet, waiting...");
+        
+        // Wait for APIService to be available
+        const checkAPIService = setInterval(() => {
+            if (typeof window.APIService !== 'undefined') {
+                console.log("✅ APIService now available, proceeding with search");
+                clearInterval(checkAPIService);
+                executeSearch(query, loadingSection, videosSection, errorSection, errorText);
             }
+        }, 100);
+        
+        // Timeout after 5 seconds
+        setTimeout(() => {
+            if (typeof window.APIService === 'undefined') {
+                clearInterval(checkAPIService);
+                console.error("❌ APIService never became available");
+                showSearchError(errorSection, errorText, "APIService failed to load. Please refresh the page.");
+            }
+        }, 5000);
+        
+        return;
+    }
+    
+    // If APIService is available, proceed immediately
+    executeSearch(query, loadingSection, videosSection, errorSection, errorText);
+}
+
+// Actual search execution
+async function executeSearch(query, loadingSection, videosSection, errorSection, errorText) {
+    try {
+        console.log('🔍 Starting search for:', query);
+        
+        const data = await window.APIService.search(query);
+        
+        if (data.success && data.data.length > 0) {
+            window.VideoRenderer.renderVideos(data.data, videosSection);
+            loadingSection.style.display = 'none';
+            videosSection.style.display = 'grid';
+            errorSection.style.display = 'none';
+            
+            // Update title with result count
+            const titleElement = document.querySelector('.page-title');
+            if (titleElement) {
+                const resultText = data.count > 0 ? ` (${data.count} results)` : ' (No results)';
+                titleElement.textContent = `Search: "${query}"${resultText}`;
+            }
+        } else {
+            throw new Error(data.error || 'No results found');
         }
+
+    } catch (error) {
+        console.error('❌ Search error:', error);
+        showSearchError(errorSection, errorText, error.message);
+    }
+}
+
+// Error display function
+function showSearchError(errorSection, errorText, message) {
+    const loadingSection = document.getElementById('loading-section');
+    const videosSection = document.getElementById('videos-container');
+    
+    errorText.textContent = message;
+    loadingSection.style.display = 'none';
+    videosSection.style.display = 'none';
+    errorSection.style.display = 'block';
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log("DOM Content Loaded - Initializing search");
+        performSearch('<%= query %>');
+    });
+} else {
+    // DOM already loaded
+    console.log("DOM already loaded - Initializing search immediately");
+    performSearch('<%= query %>');
+}
     </script>
 
 <%- include('partials/footer') %>
