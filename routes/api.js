@@ -1,4 +1,4 @@
-// routes/api.js - Enhanced with Better Error Handling
+// routes/api.js - Enhanced with Better API Validation
 import express from 'express';
 import { ApifyClient } from 'apify-client';
 import dotenv from 'dotenv';
@@ -8,49 +8,91 @@ dotenv.config();
 const router = express.Router();
 
 // ======================
-// APIFY CLIENT SETUP WITH VALIDATION
+// ENHANCED APIFY CLIENT SETUP
 // ======================
 const APIFY_TOKEN = process.env.APIFY_API_KEY;
 
-// Validate API key on startup
-if (!APIFY_TOKEN || APIFY_TOKEN === 'your_actual_apify_api_key_here') {
-  console.error('❌ APIFY_API_KEY is not set in environment variables');
-  console.log('💡 Please add your Apify API key to Vercel environment variables');
+// Comprehensive API key validation
+let client = null;
+let apiStatus = {
+  configured: false,
+  valid: false,
+  message: 'Not configured',
+  user: null
+};
+
+async function initializeApifyClient() {
+  // Check if API key is set
+  if (!APIFY_TOKEN || APIFY_TOKEN === 'your_actual_apify_api_key_here') {
+    apiStatus.message = 'API key not configured in environment variables';
+    console.error('❌ ' + apiStatus.message);
+    return;
+  }
+
+  // Validate API key format
+  if (!APIFY_TOKEN.startsWith('apify_api_')) {
+    apiStatus.message = 'Invalid API key format. Must start with "apify_api_"';
+    console.error('❌ ' + apiStatus.message);
+    return;
+  }
+
+  try {
+    console.log('🔄 Initializing Apify client...');
+    client = new ApifyClient({ 
+      token: APIFY_TOKEN,
+      timeout: 30000
+    });
+
+    // Test authentication immediately
+    const user = await client.user().get();
+    apiStatus.configured = true;
+    apiStatus.valid = true;
+    apiStatus.user = user.username;
+    apiStatus.message = `Authenticated as: ${user.username}`;
+    
+    console.log('✅ Apify client initialized successfully');
+    console.log(`✅ Authenticated as: ${user.username}`);
+    
+  } catch (error) {
+    apiStatus.configured = true;
+    apiStatus.valid = false;
+    
+    if (error.message.includes('invalid token') || error.message.includes('unauthorized')) {
+      apiStatus.message = 'Invalid API token. Please check your Apify API key.';
+    } else if (error.message.includes('rate limit')) {
+      apiStatus.message = 'API rate limit exceeded. Please try again later.';
+    } else {
+      apiStatus.message = `API connection failed: ${error.message}`;
+    }
+    
+    console.error('❌ Apify authentication failed:', error.message);
+    client = null;
+  }
 }
 
-let client;
-try {
-  client = new ApifyClient({ 
-    token: APIFY_TOKEN,
-    timeout: 30000 // 30 second timeout
-  });
-  console.log('✅ Apify client initialized successfully');
-} catch (error) {
-  console.error('❌ Failed to initialize Apify client:', error.message);
-}
+// Initialize on startup
+initializeApifyClient();
 
 const ACTOR_NAME = "clockworks/tiktok-scraper";
 
 // ======================
-// ENHANCED HELPER FUNCTIONS
+// ENHANCED SCRAPER WITH BETTER ERROR HANDLING
 // ======================
 
-// Simple in-memory cache
 const cache = new Map();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000;
 
-// Enhanced scraper with comprehensive error handling
 async function runScraper(input, cacheKey = null, username = null) {
-  // Validate API key first
-  if (!APIFY_TOKEN || APIFY_TOKEN === 'your_actual_apify_api_key_here') {
-    throw new Error('Apify API key not configured. Please set APIFY_API_KEY environment variable in Vercel.');
+  // Check API status first
+  if (!apiStatus.valid) {
+    throw new Error(`API configuration error: ${apiStatus.message}`);
   }
 
   if (!client) {
-    throw new Error('Apify client not initialized. Check your API key.');
+    throw new Error('Apify client not available. Please check server configuration.');
   }
 
-  // Check cache first
+  // Check cache
   if (cacheKey && cache.has(cacheKey)) {
     const cached = cache.get(cacheKey);
     if (Date.now() - cached.timestamp < CACHE_DURATION) {
@@ -60,25 +102,14 @@ async function runScraper(input, cacheKey = null, username = null) {
   }
 
   try {
-    console.log(`🔄 Fetching data from Apify for: ${cacheKey || 'unknown'}`);
+    console.log(`🔄 Fetching from Apify for: ${cacheKey || 'unknown'}`);
     
-    // Test API connection first
-    try {
-      const me = await client.user().get();
-      console.log(`✅ Apify API connected as: ${me.username}`);
-    } catch (authError) {
-      console.error('❌ Apify authentication failed:', authError.message);
-      throw new Error('Invalid Apify API token. Please check your API key in Vercel environment variables.');
-    }
-
-    // Run the TikTok scraper
     const run = await client.actor(ACTOR_NAME).call(input);
     console.log(`✅ Apify run started: ${run.id}`);
     
     const { items } = await client.dataset(run.defaultDatasetId).listItems();
     console.log(`✅ Received ${items.length} items from Apify`);
     
-    // Validate response
     if (!items || items.length === 0) {
       if (username) {
         throw new Error(`User @${username} not found, account is private, or has no public videos.`);
@@ -100,14 +131,14 @@ async function runScraper(input, cacheKey = null, username = null) {
   } catch (error) {
     console.error('❌ Apify scraper error:', error.message);
     
-    // Handle specific error cases
+    // Enhanced error categorization
     if (error.message.includes('invalid token') || 
         error.message.includes('authentication') ||
         error.message.includes('unauthorized')) {
-      throw new Error('Invalid Apify API token. Please check your API key in Vercel environment variables.');
+      throw new Error('Invalid Apify API token. Please check your API key configuration in Vercel environment variables.');
     }
     
-    if (error.message.includes('rate limit') || error.message.includes('too many requests')) {
+    if (error.message.includes('rate limit')) {
       throw new Error('API rate limit exceeded. Please try again in a few minutes.');
     }
     
@@ -115,12 +146,7 @@ async function runScraper(input, cacheKey = null, username = null) {
       throw new Error(`User @${username} not found. Please check the username and try again.`);
     }
     
-    if (error.message.includes('private')) {
-      throw new Error(`User @${username} account is private and cannot be accessed.`);
-    }
-    
-    // Generic error with more context
-    throw new Error(`Failed to fetch TikTok data: ${error.message}`);
+    throw new Error(`Failed to fetch data: ${error.message}`);
   }
 }
 
@@ -150,7 +176,6 @@ function mapVideos(items) {
     .filter(video => video.id);
 }
 
-// Map profile data
 function mapProfile(authorMeta) {
   if (!authorMeta) return null;
   
@@ -170,18 +195,12 @@ function mapProfile(authorMeta) {
 // ENHANCED API ROUTES
 // ======================
 
-// Health check endpoint with API validation
+// Comprehensive health check endpoint
 router.get('/health', async (req, res) => {
   try {
-    let apiStatus = 'Not configured';
-    
-    if (APIFY_TOKEN && APIFY_TOKEN !== 'your_actual_apify_api_key_here') {
-      try {
-        const me = await client.user().get();
-        apiStatus = `Connected as: ${me.username}`;
-      } catch (error) {
-        apiStatus = `Error: ${error.message}`;
-      }
+    // Re-validate API key on health check
+    if (!apiStatus.valid && APIFY_TOKEN && APIFY_TOKEN !== 'your_actual_apify_api_key_here') {
+      await initializeApifyClient();
     }
     
     res.json({
@@ -189,14 +208,22 @@ router.get('/health', async (req, res) => {
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV,
       apiKeyConfigured: !!APIFY_TOKEN && APIFY_TOKEN !== 'your_actual_apify_api_key_here',
+      apiKeyPreview: APIFY_TOKEN ? `${APIFY_TOKEN.substring(0, 10)}...` : 'Not set',
       apiStatus: apiStatus,
       cacheSize: cache.size,
-      vercel: process.env.VERCEL ? 'Yes' : 'No'
+      vercel: process.env.VERCEL ? 'Yes' : 'No',
+      instructions: !apiStatus.valid ? [
+        '1. Visit https://console.apify.com/account/integrations',
+        '2. Copy your API token (starts with apify_api_)',
+        '3. Add it to Vercel Environment Variables as APIFY_API_KEY',
+        '4. Redeploy your application'
+      ] : null
     });
   } catch (error) {
     res.status(500).json({
       status: 'Error',
-      error: error.message
+      error: error.message,
+      apiStatus: apiStatus
     });
   }
 });
@@ -225,7 +252,8 @@ router.get('/trending', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message,
-      message: 'Failed to fetch trending videos'
+      message: 'Failed to fetch trending videos',
+      apiStatus: apiStatus
     });
   }
 });
@@ -263,7 +291,8 @@ router.get('/hashtag/:tag', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message,
-      message: `Failed to fetch videos for #${req.params.tag}`
+      message: `Failed to fetch videos for #${req.params.tag}`,
+      apiStatus: apiStatus
     });
   }
 });
@@ -310,7 +339,8 @@ router.get('/profile/:username', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message,
-      message: `Failed to fetch profile @${req.params.username}`
+      message: `Failed to fetch profile @${req.params.username}`,
+      apiStatus: apiStatus
     });
   }
 });
@@ -348,7 +378,6 @@ router.get('/search', async (req, res) => {
       };
       cacheKey = `search_profile_${username}`;
     } else {
-      // Search by keyword (using hashtag search as fallback)
       input = { 
         hashtags: [query], 
         resultsPerPage: 15,
@@ -373,7 +402,8 @@ router.get('/search', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message,
-      message: `Search failed for "${req.query.q}"`
+      message: `Search failed for "${req.query.q}"`,
+      apiStatus: apiStatus
     });
   }
 });
@@ -386,6 +416,43 @@ router.delete('/cache', (req, res) => {
     success: true,
     message: `Cache cleared (${previousSize} items removed)`
   });
+});
+
+// Test API endpoint (for debugging)
+router.get('/test', async (req, res) => {
+  try {
+    if (!apiStatus.valid) {
+      return res.status(500).json({
+        success: false,
+        error: 'API not configured properly',
+        apiStatus: apiStatus
+      });
+    }
+
+    // Test with a simple TikTok request
+    const input = {
+      profiles: ["tiktok"],
+      proxyCountryCode: "None",
+      resultsPerPage: 5,
+      shouldDownloadVideos: false,
+    };
+    
+    const items = await runScraper(input, 'test');
+    const videos = mapVideos(items);
+    
+    res.json({
+      success: true,
+      message: 'API test successful',
+      videosCount: videos.length,
+      apiStatus: apiStatus
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      apiStatus: apiStatus
+    });
+  }
 });
 
 export default router;
